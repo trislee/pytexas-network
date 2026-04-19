@@ -7,8 +7,11 @@ Requires ffmpeg/ffprobe for duration, mono 16 kHz decode, and NeMo for transcrip
 
 from __future__ import annotations
 
+import os
 import shutil
 import sqlite3
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -16,17 +19,119 @@ import nemo.collections.asr as nemo_asr
 import torch
 
 from config import DOWNLOADS_DIR, TRANSCRIPTS_DB
-from transcription_common import (
-    audio_duration_seconds,
-    ensure_transcripts_schema,
-    mono_16k_wav,
-    relative_key,
-    split_wav_segments,
-)
 
 PARAKEET = "nvidia/parakeet-tdt-0.6b-v3"
 # Long talks OOM small GPUs if processed as one tensor; split after local-attention setup.
 TRANSCRIBE_CHUNK_SECONDS = 240.0
+
+
+def audio_duration_seconds(path: Path) -> float:
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return float(result.stdout.strip())
+
+
+def relative_key(path: Path) -> str:
+    return path.relative_to(DOWNLOADS_DIR).as_posix()
+
+
+def mono_16k_wav(src: Path) -> Path:
+    """Decode audio to mono 16 kHz WAV."""
+    fd, name = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
+    out = Path(name)
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-nostdin",
+                "-y",
+                "-i",
+                str(src),
+                "-ac",
+                "1",
+                "-ar",
+                "16000",
+                "-f",
+                "wav",
+                str(out),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError:
+        out.unlink(missing_ok=True)
+        raise
+    return out
+
+
+def split_wav_segments(src: Path, segment_seconds: float) -> tuple[list[Path], Path]:
+    """Write contiguous WAV segments via ffmpeg; caller must shutil.rmtree(tmpdir) when done."""
+    tmpdir = Path(tempfile.mkdtemp())
+    pattern = str(tmpdir / "seg_%03d.wav")
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-nostdin",
+                "-y",
+                "-i",
+                str(src),
+                "-f",
+                "segment",
+                "-segment_time",
+                str(int(segment_seconds)),
+                "-reset_timestamps",
+                "1",
+                pattern,
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError:
+        shutil.rmtree(tmpdir)
+        raise
+    segs = sorted(tmpdir.glob("seg_*.wav"))
+    if not segs:
+        shutil.rmtree(tmpdir)
+        raise RuntimeError(f"ffmpeg segment produced no files under {tmpdir}")
+    return segs, tmpdir
+
+
+def ensure_transcripts_schema(conn: sqlite3.Connection) -> None:
+    """Create transcripts table and add new columns when upgrading old DBs."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS transcripts (
+            filename TEXT PRIMARY KEY,
+            audio_duration_seconds REAL NOT NULL,
+            transcript TEXT NOT NULL,
+            transcript_canary_qwen TEXT,
+            entities_json TEXT
+        )
+        """
+    )
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(transcripts)").fetchall()}
+    if "transcript_canary_qwen" not in cols:
+        conn.execute("ALTER TABLE transcripts ADD COLUMN transcript_canary_qwen TEXT")
+    if "entities_json" not in cols:
+        conn.execute("ALTER TABLE transcripts ADD COLUMN entities_json TEXT")
+    conn.commit()
 
 
 def _transcribe_wav(asr_model: Any, wav: Path) -> str:

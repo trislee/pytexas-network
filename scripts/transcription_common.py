@@ -1,17 +1,11 @@
-"""Shared audio + SQLite schema helpers for transcription scripts."""
+"""Shared entity normalization + SQLite schema helpers for transcript / NER scripts."""
 
 from __future__ import annotations
 
 import json
-import os
 import re
-import shutil
 import sqlite3
-import subprocess
-import tempfile
 from pathlib import Path
-
-from config import DOWNLOADS_DIR
 
 
 def standardize_entity(text: str) -> str:
@@ -66,94 +60,6 @@ def canonicalize(text: str, variant_to_canonical: dict[str, str]) -> str:
             return s
         s = nxt
     raise RuntimeError(f"Canonicalization chain exceeded {MAX_CANONICAL_CHAIN} steps for {text!r}")
-
-
-def audio_duration_seconds(path: Path) -> float:
-    result = subprocess.run(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-show_entries",
-            "format=duration",
-            "-of",
-            "default=noprint_wrappers=1:nokey=1",
-            str(path),
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return float(result.stdout.strip())
-
-
-def relative_key(path: Path) -> str:
-    return path.relative_to(DOWNLOADS_DIR).as_posix()
-
-
-def mono_16k_wav(src: Path) -> Path:
-    """Decode audio to mono 16 kHz WAV."""
-    fd, name = tempfile.mkstemp(suffix=".wav")
-    os.close(fd)
-    out = Path(name)
-    try:
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-nostdin",
-                "-y",
-                "-i",
-                str(src),
-                "-ac",
-                "1",
-                "-ar",
-                "16000",
-                "-f",
-                "wav",
-                str(out),
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except subprocess.CalledProcessError:
-        out.unlink(missing_ok=True)
-        raise
-    return out
-
-
-def split_wav_segments(src: Path, segment_seconds: float) -> tuple[list[Path], Path]:
-    """Write contiguous WAV segments via ffmpeg; caller must shutil.rmtree(tmpdir) when done."""
-    tmpdir = Path(tempfile.mkdtemp())
-    pattern = str(tmpdir / "seg_%03d.wav")
-    try:
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-nostdin",
-                "-y",
-                "-i",
-                str(src),
-                "-f",
-                "segment",
-                "-segment_time",
-                str(int(segment_seconds)),
-                "-reset_timestamps",
-                "1",
-                pattern,
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except subprocess.CalledProcessError:
-        shutil.rmtree(tmpdir)
-        raise
-    segs = sorted(tmpdir.glob("seg_*.wav"))
-    if not segs:
-        shutil.rmtree(tmpdir)
-        raise RuntimeError(f"ffmpeg segment produced no files under {tmpdir}")
-    return segs, tmpdir
 
 
 def ensure_transcripts_schema(conn: sqlite3.Connection) -> None:
