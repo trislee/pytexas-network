@@ -45,7 +45,7 @@ const Root: FC = () => {
   );
 
   useEffect(() => {
-    fetch(`./pytexas.json`)
+    fetch(`${import.meta.env.BASE_URL}pytexas.json`)
       .then((res) => res.json())
       .then((d: Dataset) => {
         setFiltersState({
