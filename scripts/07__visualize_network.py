@@ -9,7 +9,7 @@ import colorcet
 
 # Colors used for different graph Modularity Classes
 COLORS = colorcet.glasbey_dark
-OUTPUT_JSON = "public/pytexas.json"
+OUTPUT_JSON = "../public/pytexas.json"
 OUTPUT_ENTITY_CLUSTER_TSV = "entity_clusters.tsv"
 
 NODE_SCALING = 2
@@ -29,7 +29,7 @@ CLUSTERS = [
     {"key": "3", "clusterLabel": "API & data"},
     {"key": "4", "clusterLabel": "Python apps & testing"},
     {"key": "5", "clusterLabel": "Cloud & platforms"},
-    {"key": "6", "clusterLabel": "Notebooks & hardware"},
+    {"key": "6", "clusterLabel": "Notebooks"},
     {"key": "other", "clusterLabel": "Other"},
 ]
 
@@ -47,6 +47,10 @@ OVERRIDES: dict[str, list[str]] = {
         "pythonic",
         "the zen of python",
     ],
+    "Hardware": [
+        "cpu",
+        "ram"
+    ]
 }
 
 KNOWN_CLUSTER_KEYS = {c["key"] for c in CLUSTERS}
