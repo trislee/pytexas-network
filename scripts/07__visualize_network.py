@@ -9,7 +9,7 @@ import colorcet
 
 # Colors used for different graph Modularity Classes
 COLORS = colorcet.glasbey_dark
-OUTPUT_JSON = "demo/public/pytexas.json"
+OUTPUT_JSON = "public/pytexas.json"
 OUTPUT_ENTITY_CLUSTER_TSV = "entity_clusters.tsv"
 
 NODE_SCALING = 2

@@ -1,0 +1,52 @@
+# Build the Vite app and deploy the static output to GitHub Pages.
+# Pages must serve the contents of `build/`, not the TypeScript sources.
+# In repo Settings → Pages, set Source to "GitHub Actions".
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Ensure pytexas.json for the app
+        run: |
+          if [ ! -f public/pytexas.json ]; then
+            cp public/dataset.json public/pytexas.json
+          fi
+      - run: npm run build
+        env:
+          # vite.config.mts uses this to set `base` for asset URLs (project vs user Pages)
+          GITHUB_REPOSITORY: ${{ github.repository }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
