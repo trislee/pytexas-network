@@ -1,8 +1,4 @@
-# Push to main/master runs this workflow; the published site is ONLY the Vite `build/`
-# output uploaded as a Pages artifact—not the files at the root of main.
-#
-# Settings → Pages → Source must be “GitHub Actions”. If you use “Deploy from a branch”
-# → main → /, GitHub serves source index.html (404 on /src/index.tsx). No extra branch needed.
+# Publishes the Vite `build/` output via GitHub Pages (Settings → Pages → GitHub Actions).
 
 name: Deploy to GitHub Pages
 
@@ -30,12 +26,11 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - name: Ensure pytexas.json for the app
+      - name: Fallback graph data if pytexas.json is missing
         run: |
           if [ ! -f public/pytexas.json ]; then
             cp public/dataset.json public/pytexas.json
           fi
-      # GITHUB_REPOSITORY is set by Actions; vite.config.mts uses it for `base` (e.g. /repo-name/).
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

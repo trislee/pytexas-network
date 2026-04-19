@@ -29,7 +29,7 @@ const GraphTitle: FC<{ filters: FiltersState; dataReady: boolean }> = ({ filters
 
   return (
     <div className="graph-title">
-      <h1>Network</h1>
+      <h1>PyTexas Network</h1>
       {hasNodes && (
         <h2>
           <i>

@@ -3,12 +3,7 @@ import { defineConfig } from "vite";
 import checker from "vite-plugin-checker";
 import viteTsconfigPaths from "vite-tsconfig-paths";
 
-/**
- * GitHub Pages base path:
- * - Project site (user.github.io/repo/): /repo/
- * - User/org site (user.github.io from user.github.io repo): /
- * Override anytime: VITE_BASE_PATH=/my/custom/path/ npm run build
- */
+/** GitHub project Pages use `/repo-name/`; user site repo uses `/`. Override: `VITE_BASE_PATH=... npm run build`. */
 function appBase(): string {
   const explicit = process.env.VITE_BASE_PATH?.trim();
   if (explicit) {

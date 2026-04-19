@@ -1,7 +1,6 @@
 {
-  "name": "@sigma/demo",
+  "name": "pytexas-network",
   "private": true,
-  "homepage": "/demo",
   "scripts": {
     "start": "vite",
     "build": "tsc && vite build",

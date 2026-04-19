@@ -1,24 +1,17 @@
-# Sigma.js full-featured demo
+# PyTexas talk entity network
 
-This project aims to provide a full-features "real life" application using sigma.js. It is built using [Vite](https://vitejs.dev/), and uses [react-sigma](https://sim51.github.io/react-sigma/), to interface sigma.js with React.
+Interactive graph of named entities extracted from PyTexas conference talk transcripts (2017–present). Built with [Vite](https://vitejs.dev/), React, and [react-sigma](https://sim51.github.io/react-sigma/).
 
-## Dataset
+## Scripts
 
-The dataset has been kindly crafted by the [Sciences-Po médialab](https://medialab.sciencespo.fr/) and [OuestWare](https://www.ouestware.com/en/) teams using [Seealsology](https://densitydesign.github.io/strumentalia-seealsology/). It represents a network of Wikipedia pages, connected by ["See also"](https://en.wikipedia.org/wiki/See_also) links. It then was tagged by hand.
+| Command | Description |
+|--------|-------------|
+| `npm start` | Dev server ([vite.config.mts](vite.config.mts) port, default 3000). |
+| `npm run build` | Production bundle in `build/`. |
+| `npm run preview` | Serve the production build locally. |
 
-## Available Scripts
+Graph JSON for the app lives at `public/pytexas.json` (generate via your pipeline, or the GitHub Action copies `public/dataset.json` as a fallback when `pytexas.json` is absent).
 
-In the project directory, you can run:
+## GitHub Pages
 
-### `npm start`
-
-Runs the app in the development mode.\
-Open [localhost:5173](http://localhost:5173) to view it in the browser.
-
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Deploy uses [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml). In the repo **Settings → Pages**, set the source to **GitHub Actions**.
